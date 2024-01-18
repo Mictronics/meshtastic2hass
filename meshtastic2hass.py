@@ -17,19 +17,22 @@
 # You should have received a copy of the GNU General Public License
 # along with meshtastic2hass. If not, see http://www.gnu.org/licenses/.
 #
+import argparse
+import asyncio
+import json
 import os
 import signal
 import sys
-import argparse
-import asyncio
-import paho.mqtt.client as mqttClient
-import json
-from pubsub import pub
+
 import meshtastic
 import meshtastic.serial_interface
+import paho.mqtt.client as mqttClient
+from pubsub import pub
+
 from globals import Globals
 
-def onReceiveTelemetry(packet, interface,topic=pub.AUTO_TOPIC):
+
+def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
     """Callback invoked when a telemetry or position packet arrives."""
     # Create JSON from Mesh packet.
     _globals = Globals.getInstance()
@@ -45,7 +48,7 @@ def onReceiveTelemetry(packet, interface,topic=pub.AUTO_TOPIC):
     for sensor in sensors:
         jsonObj.clear()
         topic = f"homeassistant/sensor/{fromId}/{sensor['id']}/config"
-        jsonObj["name"] = f"{shortName} {sensor['name']}" 
+        jsonObj["name"] = f"{shortName} {sensor['name']}"
         jsonObj["unique_id"] = f"{shortName.lower()}_{sensor['id']}"
         jsonObj["state_topic"] = f"{topicPrefix}/{fromId}/{sensor['state_topic']}"
         jsonObj["state_class"] = "measurement"
@@ -55,12 +58,18 @@ def onReceiveTelemetry(packet, interface,topic=pub.AUTO_TOPIC):
         if sensor["unit"]:
             jsonObj["unit_of_measurement"] = sensor["unit"]
         if sensor["type"] == "float":
-            jsonObj["value_template"] = "{{ " + f"(value_json.{sensor['property']} | float) | round(1)" + " }}"
+            jsonObj["value_template"] = (
+                "{{ " + f"(value_json.{sensor['property']} | float) | round(1)" + " }}"
+            )
         elif sensor["type"] == "int":
-            jsonObj["value_template"] = "{{ " + f"(value_json.{sensor['property']} | int)" + " }}"
+            jsonObj["value_template"] = (
+                "{{ " + f"(value_json.{sensor['property']} | int)" + " }}"
+            )
 
-        mqtt.publish(topic, json.dumps(jsonObj, separators=(",", ":")), qos=1).wait_for_publish(1)
-    # Publish telemetry as sensor topics    
+        mqtt.publish(
+            topic, json.dumps(jsonObj, separators=(",", ":")), qos=1
+        ).wait_for_publish(1)
+    # Publish telemetry as sensor topics
     jsonObj.clear()
     rssi = packet.get("rxRssi")
     if rssi:
@@ -88,9 +97,12 @@ def onReceiveTelemetry(packet, interface,topic=pub.AUTO_TOPIC):
             topic = f"{topicPrefix}/{fromId}/power"
             jsonObj = jsonObj | powerMetrics
 
-        mqtt.publish(topic, json.dumps(jsonObj, separators=(",", ":")), qos=1).wait_for_publish(1)
+        mqtt.publish(
+            topic, json.dumps(jsonObj, separators=(",", ":")), qos=1
+        ).wait_for_publish(1)
 
-def onReceivePosition(packet, interface,topic=pub.AUTO_TOPIC):
+
+def onReceivePosition(packet, interface, topic=pub.AUTO_TOPIC):
     """Callback invoked when a position packet arrives."""
     _globals = Globals.getInstance()
     mqtt = _globals.getMQTT()
@@ -102,11 +114,13 @@ def onReceivePosition(packet, interface,topic=pub.AUTO_TOPIC):
     fromId = fromId.strip("!")
     # Publish auto discovery configuration for device tracker
     topic = f"homeassistant/device_tracker/{fromId}/config"
-    jsonObj["name"] = f"{shortName} Position" 
+    jsonObj["name"] = f"{shortName} Position"
     jsonObj["unique_id"] = f"{shortName.lower()}_position"
     jsonObj["json_attributes_topic"] = f"{topicPrefix}/{fromId}/attributes"
     jsonObj["source_type"] = "gps"
-    mqtt.publish(topic, json.dumps(jsonObj, separators=(",", ":")), qos=1).wait_for_publish(1)
+    mqtt.publish(
+        topic, json.dumps(jsonObj, separators=(",", ":")), qos=1
+    ).wait_for_publish(1)
     # Publish position payload for device tracker in attributes topic
     jsonObj.clear()
     position = packet.get("decoded").get("position")
@@ -116,17 +130,22 @@ def onReceivePosition(packet, interface,topic=pub.AUTO_TOPIC):
         jsonObj["satsInView"] = position.get("satsInView")
         jsonObj["location_accuracy"] = 1
         topic = f"{topicPrefix}/{fromId}/attributes"
-        mqtt.publish(topic, json.dumps(jsonObj, separators=(",", ":")), qos=1).wait_for_publish(1)
+        mqtt.publish(
+            topic, json.dumps(jsonObj, separators=(",", ":")), qos=1
+        ).wait_for_publish(1)
+
 
 def onConnect(interface, topic=pub.AUTO_TOPIC):
     """Callback invoked when we connect to a radio"""
     print(f"Connection: {topic.getName()}")
+
 
 def onDisconnect(interface, topic=pub.AUTO_TOPIC):
     """Callback invoked when we disconnect from a radio"""
     print(f"Connection: {topic.getName()}")
     _globals = Globals.getInstance()
     _globals.getLoop().stop()
+
 
 def onConnected(interface):
     """Callback invoked when we are connected to a radio"""
@@ -144,9 +163,11 @@ def onConnected(interface):
         interface.close()
         sys.exit(1)
 
+
 def onMQTTMessage(mqttc, obj, msg):
     """Callback invoke when we receive a message via MQTT"""
     print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
+
 
 def onMQTTConnect(client, userdata, flags, rc):
     """Callback invoke when we connect to MQTT broker"""
@@ -155,6 +176,7 @@ def onMQTTConnect(client, userdata, flags, rc):
         _globals = Globals.getInstance()
         _globals.getLoop().stop()
 
+
 def onMQTTDisconnect(client, userdata, rc):
     """Callback invoke when we disconnect from MQTT broker"""
     if rc != 0:
@@ -162,9 +184,11 @@ def onMQTTDisconnect(client, userdata, rc):
         _globals = Globals.getInstance()
         _globals.getLoop().stop()
 
+
 def onMQTTPublish(client, userdata, mid):
     """Callback invoked when a message has completed transmission to the broker"""
     pass
+
 
 def initArgParser():
     """Initialize the command line argument parsing."""
@@ -176,35 +200,26 @@ def initArgParser():
         "--dev",
         help="The device the Meshtastic device is connected to, i.e. /dev/ttyUSB0",
         default=None,
-        required = True
+        required=True,
     )
 
     parser.add_argument(
         "--mqtt-host",
         help="The MQTT broker host name or IP.",
         default="localhost",
-        required = True
+        required=True,
     )
 
     parser.add_argument(
-        "--mqtt-port",
-        help="The MQTT broker port.",
-        default=1883,
-        required = False
+        "--mqtt-port", help="The MQTT broker port.", default=1883, required=False
     )
 
     parser.add_argument(
-        "--mqtt-user",
-        help="The MQTT broker user name.",
-        default=None,
-        required = True
+        "--mqtt-user", help="The MQTT broker user name.", default=None, required=True
     )
 
     parser.add_argument(
-        "--mqtt-password",
-        help="The MQTT broker password.",
-        default=None,
-        required = True
+        "--mqtt-password", help="The MQTT broker password.", default=None, required=True
     )
 
     parser.set_defaults(deprecated=None)
@@ -213,6 +228,7 @@ def initArgParser():
     args = parser.parse_args()
     _globals.setArgs(args)
     _globals.setParser(parser)
+
 
 def initMQTT():
     """Initialize the MQTT client and connect to broker"""
@@ -233,8 +249,10 @@ def initMQTT():
         print(f"MQTT client error: {e}")
         sys.exit(1)
 
+
 def main():
     """Main program function"""
+
     def signal_handler(signal, frame):
         client.close()
         mqtt.disconnect()
@@ -246,27 +264,29 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
 
     _globals = Globals.getInstance()
-    parser = argparse.ArgumentParser(prog="meshtastic2hass",
-                    description="Connects Meshtastic radios via MQTT to Home Assistant (Hass).",
-                    epilog="License GPL-3+ (C) 2024 Michael Wolf, www.mictronics.de")
+    parser = argparse.ArgumentParser(
+        prog="meshtastic2hass",
+        description="Connects Meshtastic radios via MQTT to Home Assistant (Hass).",
+        epilog="License GPL-3+ (C) 2024 Michael Wolf, www.mictronics.de",
+    )
     _globals.setParser(parser)
     initArgParser()
     args = _globals.getArgs()
     mqtt = _globals.getMQTT()
-    
+
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
     else:
         initMQTT()
         try:
-            client = meshtastic.serial_interface.SerialInterface(devPath=args.dev, noProto=False)
+            client = meshtastic.serial_interface.SerialInterface(
+                devPath=args.dev, noProto=False
+            )
         except PermissionError as ex:
             username = os.getlogin()
             message = "Permission Error:\n"
-            message += (
-                "  Need to add yourself to the 'dialout' group by running:\n"
-            )
+            message += "  Need to add yourself to the 'dialout' group by running:\n"
             message += f"     sudo usermod -a -G dialout {username}\n"
             message += "  After running that command, log out and re-login for it to take effect.\n"
             message += f"Error was:{ex}"
@@ -282,6 +302,7 @@ def main():
             loop.run_forever()
         finally:
             loop.close()
+
 
 if __name__ == "__main__":
     main()

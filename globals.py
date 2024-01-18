@@ -39,15 +39,141 @@ class Globals:
         self.mqtt = None
         # Home Assistant sensor configuration send via MQTT.
         self.mqttSensors = [
-            dict(id = "battery_voltage", name = "Battery Voltage", state_topic = "device", device_class = "voltage", unit = "V", property = "voltage", type = "float"),
-            dict(id = "battery_percent", name = "Battery Level", state_topic = "device", device_class = "battery", unit = "%", property = "batteryLevel", type = "float"),
-            dict(id = "chutil", name = "Channel Util", state_topic = "device", device_class = None, unit = "%", property = "channelUtilization", type = "float"),
-            dict(id = "airutiltx", name = "Air Util Tx", state_topic = "device", device_class = None, unit = "%", property = "channelUtilization", type = "float"),
-            dict(id = "temperature", name = "Temperature", state_topic = "environment", device_class = "temperature", unit = "°C", property = "temperature", type = "float"),
-            dict(id = "humidity", name = "Humidity", state_topic = "environment", device_class = "humidity", unit = "%", property = "relativeHumidity", type = "float"),
-            dict(id = "pressure", name = "pressure", state_topic = "environment", device_class = "atmospheric_pressure", unit = "hPa", property = "barometricPressure", type = "float"),
-            dict(id = "rssi", name = "RSSI", state_topic = "device", device_class = "signal_strength", unit = "dBm", property = "rssi", type = "int"),
-            dict(id = "snr", name = "SNR", state_topic = "device", device_class = None, unit = None, property = "snr", type = "float")
+            dict(
+                id="battery_voltage",
+                name="Battery Voltage",
+                state_topic="device",
+                device_class="voltage",
+                unit="V",
+                property="voltage",
+                type="float",
+            ),
+            dict(
+                id="battery_percent",
+                name="Battery Level",
+                state_topic="device",
+                device_class="battery",
+                unit="%",
+                property="batteryLevel",
+                type="float",
+            ),
+            dict(
+                id="chutil",
+                name="Channel Util",
+                state_topic="device",
+                device_class=None,
+                unit="%",
+                property="channelUtilization",
+                type="float",
+            ),
+            dict(
+                id="airutiltx",
+                name="Air Util Tx",
+                state_topic="device",
+                device_class=None,
+                unit="%",
+                property="channelUtilization",
+                type="float",
+            ),
+            dict(
+                id="temperature",
+                name="Temperature",
+                state_topic="environment",
+                device_class="temperature",
+                unit="°C",
+                property="temperature",
+                type="float",
+            ),
+            dict(
+                id="humidity",
+                name="Humidity",
+                state_topic="environment",
+                device_class="humidity",
+                unit="%",
+                property="relativeHumidity",
+                type="float",
+            ),
+            dict(
+                id="pressure",
+                name="pressure",
+                state_topic="environment",
+                device_class="atmospheric_pressure",
+                unit="hPa",
+                property="barometricPressure",
+                type="float",
+            ),
+            dict(
+                id="rssi",
+                name="RSSI",
+                state_topic="device",
+                device_class="signal_strength",
+                unit="dBm",
+                property="rssi",
+                type="int",
+            ),
+            dict(
+                id="snr",
+                name="SNR",
+                state_topic="device",
+                device_class=None,
+                unit=None,
+                property="snr",
+                type="float",
+            ),
+            dict(
+                id="ch1_voltage",
+                name="Voltage Sensor 1",
+                state_topic="power",
+                device_class="voltage",
+                unit="V",
+                property="ch1Voltage",
+                type="float",
+            ),
+            dict(
+                id="ch1_current",
+                name="Current Sensor 1",
+                state_topic="power",
+                device_class="current",
+                unit="A",
+                property="ch1Current",
+                type="float",
+            ),
+            dict(
+                id="ch2_voltage",
+                name="Voltage Sensor 2",
+                state_topic="power",
+                device_class="voltage",
+                unit="V",
+                property="ch2Voltage",
+                type="float",
+            ),
+            dict(
+                id="ch2_current",
+                name="Current Sensor 2",
+                state_topic="power",
+                device_class="current",
+                unit="A",
+                property="ch2Current",
+                type="float",
+            ),
+            dict(
+                id="ch3_voltage",
+                name="Voltage Sensor 3",
+                state_topic="power",
+                device_class="voltage",
+                unit="V",
+                property="ch3Voltage",
+                type="float",
+            ),
+            dict(
+                id="ch3_current",
+                name="Current Sensor 3",
+                state_topic="power",
+                device_class="current",
+                unit="A",
+                property="ch3Current",
+                type="float",
+            ),
         ]
         self.mqttTopicPrefix = "msh/2/json"
 
@@ -83,19 +209,19 @@ class Globals:
     def getParser(self):
         """Get parser"""
         return self.parser
-    
+
     def getLoop(self):
         """Get the loop"""
         return self.loop
-    
+
     def getMQTT(self):
         """Get the MQTT client"""
         return self.mqtt
-    
+
     def getSensors(self):
         """Get the MQTT sensor configuration"""
         return self.mqttSensors
-    
+
     def getTopicPrefix(self):
         """Get the MQTT topic prefix"""
         return self.mqttTopicPrefix
