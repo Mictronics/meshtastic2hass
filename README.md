@@ -4,9 +4,9 @@ A Python client for use with Meshtastic devices. The client connects to a mesh r
 
 ## Usage
 
-```
+```bash
 usage: meshtastic2hass [-h] --dev DEV --mqtt-host MQTT_HOST [--mqtt-port MQTT_PORT] --mqtt-user MQTT_USER --mqtt-password
-                       MQTT_PASSWORD [--version]
+                       MQTT_PASSWORD [--mqtt-topic-prefix MQTT_TOPIC_PREFIX] [--version]
 
 Connects Meshtastic radios via MQTT to Home Assistant (Hass).
 
@@ -21,6 +21,7 @@ options:
                         The MQTT broker user name.
   --mqtt-password MQTT_PASSWORD
                         The MQTT broker password.
+  --mqtt-topic-prefix MQTT_TOPIC_PREFIX
+                        The MQTT topic prefix
   --version             show program's version number and exit
-
 ```

@@ -225,6 +225,13 @@ def initArgParser():
         "--mqtt-password", help="The MQTT broker password.", default=None, required=True
     )
 
+    parser.add_argument(
+        "--mqtt-topic-prefix",
+        help="The MQTT topic prefix",
+        default="msh/2/json",
+        required=False,
+    )
+
     parser.set_defaults(deprecated=None)
     parser.add_argument("--version", action="version", version=f"{__version__}")
 
@@ -241,6 +248,7 @@ def initMQTT():
     try:
         mqtt = mqttClient.Client()
         _globals.setMQTT(mqtt)
+        _globals.setTopicPrefix(args.mqtt_topic_prefix)
         mqtt.on_message = onMQTTMessage
         mqtt.on_connect = onMQTTConnect
         mqtt.on_disconnect = onMQTTDisconnect

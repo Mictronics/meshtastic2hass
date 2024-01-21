@@ -201,6 +201,7 @@ class Globals:
         self.parser = None
         self.loop = None
         self.mqtt = None
+        self.mqttTopicPrefix = "msh/2/json"
 
     # setters
     def setArgs(self, args):
@@ -218,6 +219,10 @@ class Globals:
     def setMQTT(self, mqtt):
         """Set the MQTT client"""
         self.mqtt = mqtt
+
+    def setTopicPrefix(self, prefix):
+        """Set the MQTT topic prefix"""
+        self.mqttTopicPrefix  = prefix
 
     # getters
     def getArgs(self):
