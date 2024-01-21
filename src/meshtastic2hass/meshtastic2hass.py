@@ -27,9 +27,14 @@ import sys
 import meshtastic
 import meshtastic.serial_interface
 import paho.mqtt.client as mqttClient
+from globals import Globals
 from pubsub import pub
 
-from globals import Globals
+from meshtastic2hass import __version__
+
+__author__ = "Michael Wolf aka Mictronics"
+__copyright__ = "2024, (C) Michael Wolf"
+__license__ = "GPL v3+"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -151,7 +156,6 @@ def onConnected(interface):
     """Callback invoked when we are connected to a radio"""
     try:
         _globals = Globals.getInstance()
-        args = _globals.getArgs()
         print("Radio: connected")
         pub.subscribe(onReceiveTelemetry, "meshtastic.receive.telemetry")
         pub.subscribe(onReceivePosition, "meshtastic.receive.position")
@@ -223,7 +227,7 @@ def initArgParser():
     )
 
     parser.set_defaults(deprecated=None)
-    parser.add_argument("--version", action="version", version=f"1.0")
+    parser.add_argument("--version", action="version", version=f"{__version__}")
 
     args = parser.parse_args()
     _globals.setArgs(args)
