@@ -1,0 +1,19 @@
+# Meshtastic2hass configuration file
+# The device the Meshtastic device is connected to
+device = "/dev/ttyUSB0"
+
+[mqtt]
+# MQTT broker host name or IP
+host = "localhost"
+
+# MQTT broker port
+port = 1883
+
+# MQTT broker user name
+user = ""
+
+# MQTT broker password
+password = ""
+
+# MQTT topic prefix
+topic_prefix = "msh/2/json"

@@ -29,11 +29,12 @@ import meshtastic.serial_interface
 import paho.mqtt.client as mqttClient
 from globals import Globals
 from pubsub import pub
+from tomlkit import toml_file
 
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2024, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.0.0"
+__version__ = "1.0.3"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -200,17 +201,24 @@ def initArgParser():
     args = _globals.getArgs()
 
     parser.add_argument(
+        "--config",
+        help="Path to configuration file in TOML format.",
+        default=None,
+        required=False,
+    )
+
+    parser.add_argument(
         "--dev",
         help="The device the Meshtastic device is connected to, i.e. /dev/ttyUSB0",
         default=None,
-        required=True,
+        required=False,
     )
 
     parser.add_argument(
         "--mqtt-host",
         help="The MQTT broker host name or IP.",
         default="localhost",
-        required=True,
+        required=False,
     )
 
     parser.add_argument(
@@ -218,11 +226,14 @@ def initArgParser():
     )
 
     parser.add_argument(
-        "--mqtt-user", help="The MQTT broker user name.", default=None, required=True
+        "--mqtt-user", help="The MQTT broker user name.", default=None, required=False
     )
 
     parser.add_argument(
-        "--mqtt-password", help="The MQTT broker password.", default=None, required=True
+        "--mqtt-password",
+        help="The MQTT broker password.",
+        default=None,
+        required=False,
     )
 
     parser.add_argument(
@@ -284,35 +295,49 @@ def main():
     initArgParser()
     args = _globals.getArgs()
     mqtt = _globals.getMQTT()
+    cfg = None
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
-    else:
-        initMQTT()
-        try:
-            client = meshtastic.serial_interface.SerialInterface(
-                devPath=args.dev, noProto=False
-            )
-        except PermissionError as ex:
-            username = os.getlogin()
-            message = "Permission Error:\n"
-            message += "  Need to add yourself to the 'dialout' group by running:\n"
-            message += f"     sudo usermod -a -G dialout {username}\n"
-            message += "  After running that command, log out and re-login for it to take effect.\n"
-            message += f"Error was:{ex}"
-            print(message)
+
+    elif args.config is not None:
+        if os.path.exists:
+            cfg = toml_file.TOMLFile(args.config).read()
+            args.dev = cfg.get("device")
+            _globals.setTopicPrefix(cfg.get("mqtt").get("topic_prefix"))
+            args.mqtt_user = cfg.get("mqtt").get("user")
+            args.mqtt_password = cfg.get("mqtt").get("password")
+            args.mqtt_host = cfg.get("mqtt").get("host")
+            args.mqtt_port = cfg.get("mqtt").get("port")
+        else:
+            print(f"Error: configuration file {args.config} not found!")
             sys.exit(1)
 
-        # We assume client is fully connected now
-        onConnected(client)
-        # Wait for packets
-        loop = asyncio.get_event_loop()
-        _globals.setLoop(loop)
-        try:
-            loop.run_forever()
-        finally:
-            loop.close()
+    initMQTT()
+    try:
+        client = meshtastic.serial_interface.SerialInterface(
+            devPath=args.dev, noProto=False
+        )
+    except PermissionError as ex:
+        username = os.getlogin()
+        message = "Permission Error:\n"
+        message += "  Need to add yourself to the 'dialout' group by running:\n"
+        message += f"     sudo usermod -a -G dialout {username}\n"
+        message += "  After running that command, log out and re-login for it to take effect.\n"
+        message += f"Error was:{ex}"
+        print(message)
+        sys.exit(1)
+
+    # We assume client is fully connected now
+    onConnected(client)
+    # Wait for packets
+    loop = asyncio.get_event_loop()
+    _globals.setLoop(loop)
+    try:
+        loop.run_forever()
+    finally:
+        loop.close()
 
 
 if __name__ == "__main__":
