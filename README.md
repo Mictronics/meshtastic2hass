@@ -12,6 +12,7 @@ Connects Meshtastic radios via MQTT to Home Assistant (Hass).
 
 options:
   -h, --help            show this help message and exit
+  --config CONFIG       Path to configuration file in TOML format.
   --dev DEV             The device the Meshtastic device is connected to, i.e. /dev/ttyUSB0
   --mqtt-host MQTT_HOST
                         The MQTT broker host name or IP.
@@ -22,6 +23,6 @@ options:
   --mqtt-password MQTT_PASSWORD
                         The MQTT broker password.
   --mqtt-topic-prefix MQTT_TOPIC_PREFIX
-                        The MQTT topic prefix
+                        The MQTT topic prefix.
   --version             show program's version number and exit
 ```
