@@ -95,7 +95,7 @@ class Globals:
             ),
             dict(
                 id="pressure",
-                name="pressure",
+                name="Pressure",
                 state_topic="environment",
                 device_class="atmospheric_pressure",
                 unit="hPa",
@@ -222,7 +222,7 @@ class Globals:
 
     def setTopicPrefix(self, prefix):
         """Set the MQTT topic prefix"""
-        self.mqttTopicPrefix  = prefix
+        self.mqttTopicPrefix = prefix
 
     # getters
     def getArgs(self):
