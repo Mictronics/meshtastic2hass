@@ -34,7 +34,7 @@ from tomlkit import toml_file
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2024, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -140,6 +140,39 @@ def onReceivePosition(packet, interface, topic=pub.AUTO_TOPIC):
         ).wait_for_publish(1)
 
 
+def onReceiveText(packet, interface, topic=pub.AUTO_TOPIC):
+    """Callback invoked when a text packet arrives."""
+    _globals = Globals.getInstance()
+    mqtt = _globals.getMQTT()
+    topicPrefix = _globals.getTopicPrefix()
+    jsonObj = {}
+    fromId = packet.get("fromId")
+    shortName = interface.nodes.get(fromId).get("user").get("shortName")
+    # No special characters allowed in config topic
+    fromId = fromId.strip("!")
+    # Publish auto discovery configuration for MQTT text entity
+    topic = f"homeassistant/text/{fromId}/config"
+    jsonObj["name"] = f"{shortName} Text"
+    jsonObj["unique_id"] = f"{shortName.lower()}_text"
+    jsonObj["command_topic"] = f"{topicPrefix}/{fromId}/command"
+    jsonObj["state_topic"] = f"{topicPrefix}/{fromId}/state"
+    jsonObj["value_template"] = "{{ value_json.text }}"
+    jsonObj["mode"] = "text"
+    jsonObj["icon"] = "mdi:message-text"
+    mqtt.publish(
+        topic, json.dumps(jsonObj, separators=(",", ":")), qos=1
+    ).wait_for_publish(1)
+    # Publish position payload for device tracker in attributes topic
+    jsonObj.clear()
+    text = packet.get("decoded").get("text")
+    if text:
+        jsonObj["text"] = text
+        topic = f"{topicPrefix}/{fromId}/state"
+        mqtt.publish(
+            topic, json.dumps(jsonObj, separators=(",", ":")), qos=1
+        ).wait_for_publish(1)
+
+
 def onConnect(interface, topic=pub.AUTO_TOPIC):
     """Callback invoked when we connect to a radio"""
     print(f"Connection: {topic.getName()}")
@@ -157,6 +190,7 @@ def onConnected(interface):
     try:
         _globals = Globals.getInstance()
         print("Radio: connected")
+        pub.subscribe(onReceiveText, "meshtastic.receive.text")
         pub.subscribe(onReceiveTelemetry, "meshtastic.receive.telemetry")
         pub.subscribe(onReceivePosition, "meshtastic.receive.position")
         pub.subscribe(onConnect, "meshtastic.connection.established")
