@@ -52,7 +52,7 @@ def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
     # Publish auto discovery configuration for sensors
     for sensor in sensors:
         jsonObj.clear()
-        topic = f"homeassistant/sensor/{fromId}/{sensor['id']}/config"
+        mqttTopic = f"homeassistant/sensor/{fromId}/{sensor['id']}/config"
         jsonObj["name"] = f"{shortName} {sensor['name']}"
         jsonObj["unique_id"] = f"{shortName.lower()}_{sensor['id']}"
         jsonObj["state_topic"] = f"{topicPrefix}/{fromId}/{sensor['state_topic']}"
@@ -72,7 +72,7 @@ def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
             )
 
         mqtt.publish(
-            topic, json.dumps(jsonObj, separators=(",", ":")), qos=1
+            mqttTopic, json.dumps(jsonObj, separators=(",", ":")), qos=1
         ).wait_for_publish(1)
     # Publish telemetry as sensor topics
     jsonObj.clear()
@@ -93,17 +93,17 @@ def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
         envMetrics = telemetry.get("environmentMetrics")
         powerMetrics = telemetry.get("powerMetrics")
         if devMetrics:
-            topic = f"{topicPrefix}/{fromId}/device"
+            mqttTopic = f"{topicPrefix}/{fromId}/device"
             jsonObj = jsonObj | devMetrics
         elif envMetrics:
-            topic = f"{topicPrefix}/{fromId}/environment"
+            mqttTopic = f"{topicPrefix}/{fromId}/environment"
             jsonObj = jsonObj | envMetrics
         elif powerMetrics:
-            topic = f"{topicPrefix}/{fromId}/power"
+            mqttTopic = f"{topicPrefix}/{fromId}/power"
             jsonObj = jsonObj | powerMetrics
 
         mqtt.publish(
-            topic, json.dumps(jsonObj, separators=(",", ":")), qos=1
+            mqttTopic, json.dumps(jsonObj, separators=(",", ":")), qos=1
         ).wait_for_publish(1)
 
 
@@ -118,13 +118,13 @@ def onReceivePosition(packet, interface, topic=pub.AUTO_TOPIC):
     # No special characters allowed in config topic
     fromId = fromId.strip("!")
     # Publish auto discovery configuration for device tracker
-    topic = f"homeassistant/device_tracker/{fromId}/config"
+    mqttTopic = f"homeassistant/device_tracker/{fromId}/config"
     jsonObj["name"] = f"{shortName} Position"
     jsonObj["unique_id"] = f"{shortName.lower()}_position"
     jsonObj["json_attributes_topic"] = f"{topicPrefix}/{fromId}/attributes"
     jsonObj["source_type"] = "gps"
     mqtt.publish(
-        topic, json.dumps(jsonObj, separators=(",", ":")), qos=1
+        mqttTopic, json.dumps(jsonObj, separators=(",", ":")), qos=1
     ).wait_for_publish(1)
     # Publish position payload for device tracker in attributes topic
     jsonObj.clear()
@@ -134,9 +134,9 @@ def onReceivePosition(packet, interface, topic=pub.AUTO_TOPIC):
         jsonObj["latitude"] = position.get("latitude")
         jsonObj["satsInView"] = position.get("satsInView")
         jsonObj["location_accuracy"] = 1
-        topic = f"{topicPrefix}/{fromId}/attributes"
+        mqttTopic = f"{topicPrefix}/{fromId}/attributes"
         mqtt.publish(
-            topic, json.dumps(jsonObj, separators=(",", ":")), qos=1
+            mqttTopic, json.dumps(jsonObj, separators=(",", ":")), qos=1
         ).wait_for_publish(1)
 
 
@@ -151,7 +151,7 @@ def onReceiveText(packet, interface, topic=pub.AUTO_TOPIC):
     # No special characters allowed in config topic
     fromId = fromId.strip("!")
     # Publish auto discovery configuration for MQTT text entity
-    topic = f"homeassistant/text/{fromId}/config"
+    mqttTopic = f"homeassistant/text/{fromId}/config"
     jsonObj["name"] = f"{shortName} Text"
     jsonObj["unique_id"] = f"{shortName.lower()}_text"
     jsonObj["command_topic"] = f"{topicPrefix}/{fromId}/command"
@@ -160,16 +160,16 @@ def onReceiveText(packet, interface, topic=pub.AUTO_TOPIC):
     jsonObj["mode"] = "text"
     jsonObj["icon"] = "mdi:message-text"
     mqtt.publish(
-        topic, json.dumps(jsonObj, separators=(",", ":")), qos=1
+        mqttTopic, json.dumps(jsonObj, separators=(",", ":")), qos=1
     ).wait_for_publish(1)
     # Publish position payload for device tracker in attributes topic
     jsonObj.clear()
     text = packet.get("decoded").get("text")
     if text:
         jsonObj["text"] = text
-        topic = f"{topicPrefix}/{fromId}/state"
+        mqttTopic = f"{topicPrefix}/{fromId}/state"
         mqtt.publish(
-            topic, json.dumps(jsonObj, separators=(",", ":")), qos=1
+            mqttTopic, json.dumps(jsonObj, separators=(",", ":")), qos=1
         ).wait_for_publish(1)
 
 
