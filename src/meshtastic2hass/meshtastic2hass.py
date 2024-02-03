@@ -365,6 +365,10 @@ def main():
         message += f"Error was:{ex}"
         print(message)
         sys.exit(1)
+    except FileNotFoundError as e:
+        print("Serial interface not found.")
+        print(f"Error was: {e}")
+        sys.exit(1)
 
     # We assume client is fully connected now
     onConnected(client)
