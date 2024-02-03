@@ -34,7 +34,7 @@ from tomlkit import toml_file
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2024, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.0.4"
+__version__ = "1.0.5"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -182,7 +182,8 @@ def onDisconnect(interface, topic=pub.AUTO_TOPIC):
     """Callback invoked when we disconnect from a radio"""
     print(f"Connection: {topic.getName()}")
     _globals = Globals.getInstance()
-    _globals.getLoop().stop()
+    if _globals.getLoop() is not None:
+        _globals.getLoop().stop()
 
 
 def onConnected(interface):
@@ -212,7 +213,8 @@ def onMQTTConnect(client, userdata, flags, rc):
     if rc != 0:
         print(f"MQTT: unexpected connection error {rc}")
         _globals = Globals.getInstance()
-        _globals.getLoop().stop()
+        if _globals.getLoop() is not None:
+            _globals.getLoop().stop()
 
 
 def onMQTTDisconnect(client, userdata, rc):
@@ -220,7 +222,8 @@ def onMQTTDisconnect(client, userdata, rc):
     if rc != 0:
         print(f"MQTT: unexpected disconnection error {rc}")
         _globals = Globals.getInstance()
-        _globals.getLoop().stop()
+        if _globals.getLoop() is not None:
+            _globals.getLoop().stop()
 
 
 def onMQTTPublish(client, userdata, mid):
