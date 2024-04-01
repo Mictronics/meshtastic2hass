@@ -26,16 +26,16 @@ import sys
 
 import meshtastic
 import meshtastic.serial_interface
-from meshtastic import config_pb2
 import paho.mqtt.client as mqttClient
 from globals import Globals
+from meshtastic import config_pb2
 from pubsub import pub
 from tomlkit import toml_file
 
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2024, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.0.6"
+__version__ = "1.0.7"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -149,9 +149,11 @@ def onReceiveText(packet, interface, topic=pub.AUTO_TOPIC):
         channelList = _globals.getChannelList()
         topicPrefix = _globals.getTopicPrefix()
         jsonObj = {}
-        fromName = interface.nodes.get(packet.get("fromId")).get("user").get("shortName")
-        if packet.get('channel'):
-            channelNumber = packet['channel']
+        fromName = (
+            interface.nodes.get(packet.get("fromId")).get("user").get("shortName")
+        )
+        if packet.get("channel"):
+            channelNumber = packet["channel"]
         else:
             channelNumber = 0
         channelName = channelList[channelNumber]
@@ -181,6 +183,20 @@ def onReceiveText(packet, interface, topic=pub.AUTO_TOPIC):
         print(f"Error processing text: {ex}")
 
 
+def onReceive(packet, interface, topic=pub.AUTO_TOPIC):
+    """Callback invoked when any packet arrives"""
+    try:
+        if (
+            "decoded" in packet
+            and packet["decoded"]["portnum"] == "DETECTION_SENSOR_APP"
+        ):
+            # Forward notification from detection sensor as text message to HA
+            onReceiveText(packet, interface)
+
+    except Exception as ex:
+        print(f"Error processing text: {ex}")
+
+
 def onConnect(interface, topic=pub.AUTO_TOPIC):
     """Callback invoked when we connect to a radio"""
     print(f"Connection: {topic.getName()}")
@@ -195,8 +211,9 @@ def onDisconnect(interface, topic=pub.AUTO_TOPIC):
 
 
 def toCamelCase(string):
-    words = string.split('_')
-    camelCaseString = ''.join(word.capitalize() for word in words)
+    """Convert string into camel case"""
+    words = string.split("_")
+    camelCaseString = "".join(word.capitalize() for word in words)
     return camelCaseString
 
 
@@ -210,9 +227,10 @@ def onConnected(interface):
         pub.subscribe(onReceivePosition, "meshtastic.receive.position")
         pub.subscribe(onConnect, "meshtastic.connection.established")
         pub.subscribe(onDisconnect, "meshtastic.connection.lost")
+        pub.subscribe(onReceive, "meshtastic.receive")
 
         channelList = _globals.getChannelList()
-        node = interface.getNode('^local')
+        node = interface.getNode("^local")
         deviceChannels = node.channels
         for deviceChannel in deviceChannels:
             if deviceChannel.role:
@@ -223,7 +241,11 @@ def onConnected(interface):
                     # If channel name is blank, use the modem preset
                     loraConfig = node.localConfig.lora
                     modemPresetEnum = loraConfig.modem_preset
-                    modemPresetString = config_pb2._CONFIG_LORACONFIG_MODEMPRESET.values_by_number[modemPresetEnum].name
+                    modemPresetString = (
+                        config_pb2._CONFIG_LORACONFIG_MODEMPRESET.values_by_number[
+                            modemPresetEnum
+                        ].name
+                    )
                     channelList.append(toCamelCase(modemPresetString))
 
     except Exception as ex:
