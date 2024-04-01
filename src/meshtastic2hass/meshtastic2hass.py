@@ -26,6 +26,7 @@ import sys
 
 import meshtastic
 import meshtastic.serial_interface
+from meshtastic import config_pb2
 import paho.mqtt.client as mqttClient
 from globals import Globals
 from pubsub import pub
@@ -34,7 +35,7 @@ from tomlkit import toml_file
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2024, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.0.5"
+__version__ = "1.0.6"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -142,35 +143,42 @@ def onReceivePosition(packet, interface, topic=pub.AUTO_TOPIC):
 
 def onReceiveText(packet, interface, topic=pub.AUTO_TOPIC):
     """Callback invoked when a text packet arrives."""
-    _globals = Globals.getInstance()
-    mqtt = _globals.getMQTT()
-    topicPrefix = _globals.getTopicPrefix()
-    jsonObj = {}
-    fromId = packet.get("fromId")
-    shortName = interface.nodes.get(fromId).get("user").get("shortName")
-    # No special characters allowed in config topic
-    fromId = fromId.strip("!")
-    # Publish auto discovery configuration for MQTT text entity
-    mqttTopic = f"homeassistant/text/{fromId}/config"
-    jsonObj["name"] = f"{shortName} Text"
-    jsonObj["unique_id"] = f"{shortName.lower()}_text"
-    jsonObj["command_topic"] = f"{topicPrefix}/{fromId}/command"
-    jsonObj["state_topic"] = f"{topicPrefix}/{fromId}/state"
-    jsonObj["value_template"] = "{{ value_json.text }}"
-    jsonObj["mode"] = "text"
-    jsonObj["icon"] = "mdi:message-text"
-    mqtt.publish(
-        mqttTopic, json.dumps(jsonObj, separators=(",", ":")), qos=1
-    ).wait_for_publish(1)
-    # Publish position payload for device tracker in attributes topic
-    jsonObj.clear()
-    text = packet.get("decoded").get("text")
-    if text:
-        jsonObj["text"] = text
-        mqttTopic = f"{topicPrefix}/{fromId}/state"
+    try:
+        _globals = Globals.getInstance()
+        mqtt = _globals.getMQTT()
+        channelList = _globals.getChannelList()
+        topicPrefix = _globals.getTopicPrefix()
+        jsonObj = {}
+        fromName = interface.nodes.get(packet.get("fromId")).get("user").get("shortName")
+        if packet.get('channel'):
+            channelNumber = packet['channel']
+        else:
+            channelNumber = 0
+        channelName = channelList[channelNumber]
+        # Publish auto discovery configuration for MQTT text entity per channel
+        mqttTopic = f"homeassistant/text/{channelName}/config"
+        jsonObj["name"] = f"{channelName}"
+        jsonObj["unique_id"] = f"channel_{channelName.lower()}"
+        jsonObj["command_topic"] = f"{topicPrefix}/{channelName.lower()}/command"
+        jsonObj["state_topic"] = f"{topicPrefix}/{channelName.lower()}/state"
+        jsonObj["value_template"] = "{{ value_json.text }}"
+        jsonObj["mode"] = "text"
+        jsonObj["icon"] = "mdi:message-text"
         mqtt.publish(
             mqttTopic, json.dumps(jsonObj, separators=(",", ":")), qos=1
         ).wait_for_publish(1)
+        # Publish received text in corresponding channel entity in attributes topic
+        jsonObj.clear()
+        text = packet.get("decoded").get("text")
+        if text:
+            jsonObj["text"] = f"{fromName}: {text}"
+            mqttTopic = f"{topicPrefix}/{channelName.lower()}/state"
+            mqtt.publish(
+                mqttTopic, json.dumps(jsonObj, separators=(",", ":")), qos=1
+            ).wait_for_publish(1)
+
+    except Exception as ex:
+        print(f"Error processing text: {ex}")
 
 
 def onConnect(interface, topic=pub.AUTO_TOPIC):
@@ -186,6 +194,12 @@ def onDisconnect(interface, topic=pub.AUTO_TOPIC):
         _globals.getLoop().stop()
 
 
+def toCamelCase(string):
+    words = string.split('_')
+    camelCaseString = ''.join(word.capitalize() for word in words)
+    return camelCaseString
+
+
 def onConnected(interface):
     """Callback invoked when we are connected to a radio"""
     try:
@@ -196,6 +210,21 @@ def onConnected(interface):
         pub.subscribe(onReceivePosition, "meshtastic.receive.position")
         pub.subscribe(onConnect, "meshtastic.connection.established")
         pub.subscribe(onDisconnect, "meshtastic.connection.lost")
+
+        channelList = _globals.getChannelList()
+        node = interface.getNode('^local')
+        deviceChannels = node.channels
+        for deviceChannel in deviceChannels:
+            if deviceChannel.role:
+                if deviceChannel.settings.name:
+                    channelList.append(deviceChannel.settings.name)
+
+                else:
+                    # If channel name is blank, use the modem preset
+                    loraConfig = node.localConfig.lora
+                    modemPresetEnum = loraConfig.modem_preset
+                    modemPresetString = config_pb2._CONFIG_LORACONFIG_MODEMPRESET.values_by_number[modemPresetEnum].name
+                    channelList.append(toCamelCase(modemPresetString))
 
     except Exception as ex:
         print(f"Aborting due to: {ex}")
