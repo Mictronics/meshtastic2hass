@@ -194,6 +194,7 @@ class Globals:
             ),
         ]
         self.mqttTopicPrefix = "msh/2/json"
+        self.channelList = []
 
     def reset(self):
         """Reset all of our globals. If you add a member, add it to this method, too."""
@@ -248,3 +249,7 @@ class Globals:
     def getTopicPrefix(self):
         """Get the MQTT topic prefix"""
         return self.mqttTopicPrefix
+
+    def getChannelList(self):
+        """Get the local nodes channel list"""
+        return self.channelList
