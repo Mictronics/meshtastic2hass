@@ -35,7 +35,7 @@ from tomlkit import toml_file
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2024, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.0.7"
+__version__ = "1.0.8"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -175,6 +175,43 @@ def onReceiveText(packet, interface, topic=pub.AUTO_TOPIC):
         if text:
             jsonObj["text"] = f"{fromName}: {text}"
             mqttTopic = f"{topicPrefix}/{channelName.lower()}/state"
+            mqtt.publish(
+                mqttTopic, json.dumps(jsonObj, separators=(",", ":")), qos=1
+            ).wait_for_publish(1)
+
+    except Exception as ex:
+        print(f"Error processing text: {ex}")
+
+
+async def periodic(interval_sec, coro_name, *args, **kwargs):
+    """Helper function for running a target periodically."""
+    # Loop forever
+    while True:
+        # Wait an interval
+        await asyncio.sleep(interval_sec)
+        # Await the target
+        await coro_name(*args, **kwargs)
+
+
+async def publishChannelConfig():
+    """Publish known channels in HA to keep them alive when when no message are received over long time."""
+    try:
+        _globals = Globals.getInstance()
+        mqtt = _globals.getMQTT()
+        channelList = _globals.getChannelList()
+        topicPrefix = _globals.getTopicPrefix()
+        jsonObj = {}
+
+        for channelName in channelList:
+            # Publish auto discovery configuration for MQTT text entity per channel
+            mqttTopic = f"homeassistant/text/{channelName}/config"
+            jsonObj["name"] = f"{channelName}"
+            jsonObj["unique_id"] = f"channel_{channelName.lower()}"
+            jsonObj["command_topic"] = f"{topicPrefix}/{channelName.lower()}/command"
+            jsonObj["state_topic"] = f"{topicPrefix}/{channelName.lower()}/state"
+            jsonObj["value_template"] = "{{ value_json.text }}"
+            jsonObj["mode"] = "text"
+            jsonObj["icon"] = "mdi:message-text"
             mqtt.publish(
                 mqttTopic, json.dumps(jsonObj, separators=(",", ":")), qos=1
             ).wait_for_publish(1)
@@ -426,6 +463,8 @@ def main():
     # Wait for packets
     loop = asyncio.get_event_loop()
     _globals.setLoop(loop)
+    # Publish channel configuration every hour via MQTT to avoid unavailability in HA
+    loop.create_task(periodic(3600, publishChannelConfig))
     try:
         loop.run_forever()
     finally:
