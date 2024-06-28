@@ -196,6 +196,7 @@ class Globals:
         ]
         self.mqttTopicPrefix = "msh/2/json"
         self.channelList = []
+        self.filterNodes = []
 
     def reset(self):
         """Reset all of our globals. If you add a member, add it to this method, too."""
@@ -225,6 +226,10 @@ class Globals:
     def setTopicPrefix(self, prefix):
         """Set the MQTT topic prefix"""
         self.mqttTopicPrefix = prefix
+
+    def setFilterNodes(self, filterNodes):
+        """Set node short names to be included in filter"""
+        self.filterNodes = filterNodes
 
     # getters
     def getArgs(self):
@@ -258,3 +263,7 @@ class Globals:
     def getSpecialChars(self):
         """Get a regex pattern of special characters to be removed from strings"""
         return self.specialChars
+
+    def getFilterNodes(self):
+        """Get a set of node short names to be included in filter"""
+        return self.filterNodes

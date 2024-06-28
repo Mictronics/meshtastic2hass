@@ -36,7 +36,7 @@ from tomlkit import toml_file
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2024, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.0.9"
+__version__ = "1.0.10"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -49,6 +49,13 @@ def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
     jsonObj = {}
     fromId = packet.get("fromId")
     shortName = interface.nodes.get(fromId).get("user").get("shortName")
+    # Filter nodes
+    filterNodes = _globals.getFilterNodes()
+    if len(filterNodes) > 0:
+        try:
+            filterNodes.index(shortName)
+        except ValueError:
+            return
     # No special characters allowed in Hass config topic
     pattern = _globals.getSpecialChars()
     fromId = re.sub(pattern, '', fromId)
@@ -118,6 +125,13 @@ def onReceivePosition(packet, interface, topic=pub.AUTO_TOPIC):
     jsonObj = {}
     fromId = packet.get("fromId")
     shortName = interface.nodes.get(fromId).get("user").get("shortName")
+    # Filter nodes
+    filterNodes = _globals.getFilterNodes()
+    if len(filterNodes) > 0:
+        try:
+            filterNodes.index(shortName)
+        except ValueError:
+            return
     # No special characters allowed in config topic
     pattern = _globals.getSpecialChars()
     fromId = re.sub(pattern, '', fromId)
@@ -208,6 +222,9 @@ async def publishChannelConfig():
         jsonObj = {}
 
         for channelName in channelList:
+            # No special characters allowed in config topic
+            pattern = _globals.getSpecialChars()
+            channelName = re.sub(pattern, '', channelName)
             # Publish auto discovery configuration for MQTT text entity per channel
             mqttTopic = f"homeassistant/text/{channelName}/config"
             jsonObj["name"] = f"{channelName}"
@@ -440,6 +457,7 @@ def main():
             args.mqtt_password = cfg.get("mqtt").get("password")
             args.mqtt_host = cfg.get("mqtt").get("host")
             args.mqtt_port = cfg.get("mqtt").get("port")
+            _globals.setFilterNodes(cfg.get("meshtastic").get("filter_nodes"))
         else:
             print(f"Error: configuration file {args.config} not found!")
             sys.exit(1)

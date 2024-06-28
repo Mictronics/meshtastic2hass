@@ -17,3 +17,10 @@ password = ""
 
 # MQTT topic prefix
 topic_prefix = "msh/2/json"
+
+[meshtastic]
+# Set of Meshtastic nodes short names to be includes in filter.
+# Only these nodes will be forwarded to home assistant via MQTT topic, hence creating entities.
+# Keep empty to forward all nodes.
+# Receiving channels text from nodes is not filtered at all.
+filter_nodes = []
