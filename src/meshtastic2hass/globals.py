@@ -37,6 +37,7 @@ class Globals:
         self.parser = None
         self.loop = None
         self.mqtt = None
+        self.special_chars = r'[!]'
         # Home Assistant sensor configuration send via MQTT.
         self.mqttSensors = [
             dict(
@@ -253,3 +254,7 @@ class Globals:
     def getChannelList(self):
         """Get the local nodes channel list"""
         return self.channelList
+
+    def getSpecialChars(self):
+        """Get a regex pattern of special characters to be removed from strings"""
+        return self.special_chars

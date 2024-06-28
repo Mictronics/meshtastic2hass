@@ -23,6 +23,7 @@ import json
 import os
 import signal
 import sys
+import re
 
 import meshtastic
 import meshtastic.serial_interface
@@ -35,7 +36,7 @@ from tomlkit import toml_file
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2024, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.0.8"
+__version__ = "1.0.9"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -49,7 +50,8 @@ def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
     fromId = packet.get("fromId")
     shortName = interface.nodes.get(fromId).get("user").get("shortName")
     # No special characters allowed in Hass config topic
-    fromId = fromId.strip("!")
+    pattern = _globals.getSpecialChars()
+    fromId = re.sub(pattern, '', fromId)
     # Publish auto discovery configuration for sensors
     for sensor in sensors:
         jsonObj.clear()
@@ -117,7 +119,8 @@ def onReceivePosition(packet, interface, topic=pub.AUTO_TOPIC):
     fromId = packet.get("fromId")
     shortName = interface.nodes.get(fromId).get("user").get("shortName")
     # No special characters allowed in config topic
-    fromId = fromId.strip("!")
+    pattern = _globals.getSpecialChars()
+    fromId = re.sub(pattern, '', fromId)
     # Publish auto discovery configuration for device tracker
     mqttTopic = f"homeassistant/device_tracker/{fromId}/config"
     jsonObj["name"] = f"{shortName} Position"
@@ -156,10 +159,12 @@ def onReceiveText(packet, interface, topic=pub.AUTO_TOPIC):
             channelNumber = packet["channel"]
         else:
             channelNumber = 0
-        channelName = channelList[channelNumber]
+        # No special characters allowed in config topic
+        pattern = _globals.getSpecialChars()
+        channelName = re.sub(pattern, '', channelList[channelNumber])
         # Publish auto discovery configuration for MQTT text entity per channel
         mqttTopic = f"homeassistant/text/{channelName}/config"
-        jsonObj["name"] = f"{channelName}"
+        jsonObj["name"] = f"{channelList[channelNumber]}"
         jsonObj["unique_id"] = f"channel_{channelName.lower()}"
         jsonObj["command_topic"] = f"{topicPrefix}/{channelName.lower()}/command"
         jsonObj["state_topic"] = f"{topicPrefix}/{channelName.lower()}/state"
