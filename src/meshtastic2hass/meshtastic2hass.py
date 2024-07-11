@@ -28,6 +28,7 @@ import re
 import meshtastic
 import meshtastic.serial_interface
 import paho.mqtt.client as mqttClient
+import random
 from globals import Globals
 from meshtastic import config_pb2
 from pubsub import pub
@@ -315,7 +316,19 @@ def onConnected(interface):
 
 def onMQTTMessage(mqttc, obj, msg):
     """Callback invoke when we receive a message via MQTT"""
-    print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
+    _globals = Globals.getInstance()
+    channelList = _globals.getChannelList()
+    topicPrefix = _globals.getTopicPrefix()
+    # Check for correct topic
+    if msg.topic.startswith(topicPrefix):
+        channel = msg.topic.split("/")[-1]
+        try:
+            # Check for existing channel
+            channelList.index(channel)
+        except ValueError:
+            return
+        # Forward message to channel
+        print(channel + " " + str(msg.qos) + " " + str(msg.payload))
 
 
 def onMQTTConnect(client, userdata, flags, rc):
@@ -403,8 +416,9 @@ def initMQTT():
     _globals = Globals.getInstance()
     args = _globals.getArgs()
     mqtt = _globals.getMQTT()
+    client_id = f'meshtastic2hass-{random.randint(0, 100)}'
     try:
-        mqtt = mqttClient.Client()
+        mqtt = mqttClient.Client(client_id, True)
         _globals.setMQTT(mqtt)
         _globals.setTopicPrefix(args.mqtt_topic_prefix)
         mqtt.on_message = onMQTTMessage
@@ -413,6 +427,7 @@ def initMQTT():
         mqtt.on_publish = onMQTTPublish
         mqtt.username_pw_set(args.mqtt_user, args.mqtt_password)
         mqtt.connect(args.mqtt_host, int(args.mqtt_port))
+        mqtt.subscribe([(f"{args.mqtt_topic_prefix}/+", 0)])
         mqtt.loop_start()
     except Exception as e:
         print(f"MQTT client error: {e}")
