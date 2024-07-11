@@ -26,3 +26,12 @@ options:
                         The MQTT topic prefix.
   --version             show program's version number and exit
 ```
+## Node Filter
+
+By default all received Meshtastic nodes will create entities in Home Assistant.
+
+This might be an undesired behavior when only some nodes are of interest. A node filter can be defined in config.toml.
+
+`filter_nodes = []` takes a set of Meshtastic nodes short names to be includes in filter. Only these nodes will be forwarded to home assistant via MQTT topic, hence creating entities. Keep empty to forward all nodes.
+
+Receiving channels text from nodes is not filtered at all.
