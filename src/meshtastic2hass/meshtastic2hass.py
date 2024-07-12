@@ -30,7 +30,7 @@ import meshtastic.serial_interface
 import paho.mqtt.client as mqttClient
 import random
 from globals import Globals
-from meshtastic import config_pb2
+from meshtastic import config_pb2, channel_pb2
 from pubsub import pub
 from tomlkit import toml_file
 
@@ -281,6 +281,7 @@ def onConnected(interface):
     """Callback invoked when we are connected to a radio"""
     try:
         _globals = Globals.getInstance()
+        _globals.setMeshtasticInterface(interface)
         print("Radio: connected")
         pub.subscribe(onReceiveText, "meshtastic.receive.text")
         pub.subscribe(onReceiveTelemetry, "meshtastic.receive.telemetry")
@@ -319,16 +320,28 @@ def onMQTTMessage(mqttc, obj, msg):
     _globals = Globals.getInstance()
     channelList = _globals.getChannelList()
     topicPrefix = _globals.getTopicPrefix()
+    interface = _globals.getMeshtasticInterface()
     # Check for correct topic
     if msg.topic.startswith(topicPrefix):
         channel = msg.topic.split("/")[-1]
         try:
             # Check for existing channel
-            channelList.index(channel)
+            channel_index = channelList.index(channel)
         except ValueError:
             return
-        # Forward message to channel
-        print(channel + " " + str(msg.qos) + " " + str(msg.payload))
+        # Check for enabled channel
+        ch = interface.localNode.getChannelByChannelIndex(channel_index)
+        if (ch and ch.role != channel_pb2.Channel.Role.DISABLED):
+            # Forward message to channel
+            # print(channel + " " + " " + msg.payload.decode('utf-8'))
+            interface.sendText(
+                     msg.payload.decode('utf-8'),
+                     "^all",  # Broadcast
+                     wantAck=False,
+                     wantResponse=False,
+                     channelIndex=channel_index,
+                     onResponse=None,
+                 )
 
 
 def onMQTTConnect(client, userdata, flags, rc):
