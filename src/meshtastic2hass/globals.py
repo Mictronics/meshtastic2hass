@@ -37,6 +37,7 @@ class Globals:
         self.parser = None
         self.loop = None
         self.mqtt = None
+        self.interface = None
         self.specialChars = r'[!]'
         # Home Assistant sensor configuration send via MQTT.
         self.mqttSensors = [
@@ -204,6 +205,7 @@ class Globals:
         self.parser = None
         self.loop = None
         self.mqtt = None
+        self.interface = None
         self.mqttTopicPrefix = "msh/2/json"
 
     # setters
@@ -230,6 +232,10 @@ class Globals:
     def setFilterNodes(self, filterNodes):
         """Set node short names to be included in filter"""
         self.filterNodes = filterNodes
+
+    def setMeshtasticInterface(self, interface):
+        """Set the Meshtastic interface"""
+        self.interface = interface
 
     # getters
     def getArgs(self):
@@ -267,3 +273,7 @@ class Globals:
     def getFilterNodes(self):
         """Get a set of node short names to be included in filter"""
         return self.filterNodes
+
+    def getMeshtasticInterface(self):
+        """Get the Meshtastic interface"""
+        return self.interface
