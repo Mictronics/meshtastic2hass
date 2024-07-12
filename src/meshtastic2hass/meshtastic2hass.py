@@ -214,7 +214,7 @@ async def periodic(interval_sec, coro_name, *args, **kwargs):
 
 
 async def publishChannelConfig():
-    """Publish known channels in HA to keep them alive when when no message are received over long time."""
+    """Publish known channels in HA to keep them alive when no message are received over long time."""
     try:
         _globals = Globals.getInstance()
         mqtt = _globals.getMQTT()
