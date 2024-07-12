@@ -37,7 +37,7 @@ from tomlkit import toml_file
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2024, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.0.10"
+__version__ = "1.0.11"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
