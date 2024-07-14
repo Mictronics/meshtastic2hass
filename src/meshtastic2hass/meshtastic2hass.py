@@ -37,7 +37,7 @@ from tomlkit import toml_file
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2024, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.0.11"
+__version__ = "1.0.12"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -344,25 +344,25 @@ def onMQTTMessage(mqttc, obj, msg):
                  )
 
 
-def onMQTTConnect(client, userdata, flags, rc):
+def onMQTTConnect(client, userdata, flags, reason_code, properties):
     """Callback invoke when we connect to MQTT broker"""
-    if rc != 0:
-        print(f"MQTT: unexpected connection error {rc}")
+    if reason_code != 0:
+        print(f"MQTT: unexpected connection error {reason_code}")
         _globals = Globals.getInstance()
         if _globals.getLoop() is not None:
             _globals.getLoop().stop()
 
 
-def onMQTTDisconnect(client, userdata, rc):
+def onMQTTDisconnect(client, userdata, flags, reason_code, properties):
     """Callback invoke when we disconnect from MQTT broker"""
-    if rc != 0:
-        print(f"MQTT: unexpected disconnection error {rc}")
+    if reason_code != 0:
+        print(f"MQTT: unexpected disconnection error {reason_code}")
         _globals = Globals.getInstance()
         if _globals.getLoop() is not None:
             _globals.getLoop().stop()
 
 
-def onMQTTPublish(client, userdata, mid):
+def onMQTTPublish(client, userdata, mid, reason_codes, properties):
     """Callback invoked when a message has completed transmission to the broker"""
     pass
 
@@ -431,7 +431,7 @@ def initMQTT():
     mqtt = _globals.getMQTT()
     client_id = f'meshtastic2hass-{random.randint(0, 100)}'
     try:
-        mqtt = mqttClient.Client(mqttClient.CallbackAPIVersion.VERSION1, client_id, True)
+        mqtt = mqttClient.Client(mqttClient.CallbackAPIVersion.VERSION2, client_id, True)
         _globals.setMQTT(mqtt)
         _globals.setTopicPrefix(args.mqtt_topic_prefix)
         mqtt.on_message = onMQTTMessage
