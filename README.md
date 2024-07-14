@@ -35,3 +35,9 @@ This might be an undesired behavior when only some nodes are of interest. A node
 `filter_nodes = []` takes a set of Meshtastic nodes short names to be includes in filter. Only these nodes will be forwarded to home assistant via MQTT topic, hence creating entities. Keep empty to forward all nodes.
 
 Receiving channels text from nodes is not filtered at all.
+
+## Install packages with pip and requirements.txt
+
+The following command installs packages in bulk according to the configuration file, requirements.txt. In some environments, use pip3 instead of pip.
+
+`pip install -r requirements.txt`
