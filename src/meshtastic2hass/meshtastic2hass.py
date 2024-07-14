@@ -431,7 +431,7 @@ def initMQTT():
     mqtt = _globals.getMQTT()
     client_id = f'meshtastic2hass-{random.randint(0, 100)}'
     try:
-        mqtt = mqttClient.Client(client_id, True)
+        mqtt = mqttClient.Client(mqttClient.CallbackAPIVersion.VERSION1, client_id, True)
         _globals.setMQTT(mqtt)
         _globals.setTopicPrefix(args.mqtt_topic_prefix)
         mqtt.on_message = onMQTTMessage
