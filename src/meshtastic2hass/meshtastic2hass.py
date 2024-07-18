@@ -27,6 +27,7 @@ import re
 
 import meshtastic
 import meshtastic.serial_interface
+import meshtastic.tcp_interface
 import paho.mqtt.client as mqttClient
 import random
 from globals import Globals
@@ -37,7 +38,7 @@ from tomlkit import toml_file
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2024, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.0.12"
+__version__ = "1.0.13"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -416,6 +417,20 @@ def initArgParser():
         required=False,
     )
 
+    parser.add_argument(
+        "--use-network",
+        help="Use network connection to Meshtastic interface instead of serial",
+        default=False,
+        required=False,
+    )
+
+    parser.add_argument(
+        "--hostname",
+        help="Meshtastic interface network hostname or IP",
+        default=None,
+        required=False,
+    )
+
     parser.set_defaults(deprecated=None)
     parser.add_argument("--version", action="version", version=f"{__version__}")
 
@@ -485,6 +500,8 @@ def main():
             args.mqtt_password = cfg.get("mqtt").get("password")
             args.mqtt_host = cfg.get("mqtt").get("host")
             args.mqtt_port = cfg.get("mqtt").get("port")
+            args.use_network = cfg.get("use_network")
+            args.hostname = cfg.get("hostname")
             _globals.setFilterNodes(cfg.get("meshtastic").get("filter_nodes"))
         else:
             print(f"Error: configuration file {args.config} not found!")
@@ -492,9 +509,12 @@ def main():
 
     initMQTT()
     try:
-        client = meshtastic.serial_interface.SerialInterface(
-            devPath=args.dev, noProto=False
-        )
+        if args.use_network and isinstance(args.hostname, str):
+            client = meshtastic.tcp_interface.TCPInterface(args.hostname , noProto=False)
+        else:
+            client = meshtastic.serial_interface.SerialInterface(
+                devPath=args.dev, noProto=False
+            )
     except PermissionError as ex:
         username = os.getlogin()
         message = "Permission Error:\n"
@@ -506,6 +526,10 @@ def main():
         sys.exit(1)
     except FileNotFoundError as e:
         print("Serial interface not found.")
+        print(f"Error was: {e}")
+        sys.exit(1)
+    except OSError as e:
+        print("Network interface not found.")
         print(f"Error was: {e}")
         sys.exit(1)
 

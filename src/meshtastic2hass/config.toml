@@ -2,6 +2,12 @@
 # The device the Meshtastic device is connected to
 device = "/dev/ttyUSB0"
 
+# Use network connection to Meshtastic interface instead of serial
+use_network = false
+
+# Meshtastic interface network hostname or IP
+hostname = ""
+
 [mqtt]
 # MQTT broker host name or IP
 host = "localhost"
