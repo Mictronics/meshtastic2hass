@@ -38,7 +38,7 @@ from tomlkit import toml_file
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2024, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.0.13"
+__version__ = "1.0.14"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -98,6 +98,11 @@ def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
         jsonObj["snr"] = snr
     else:
         jsonObj["snr"] = 0
+    # Calculate hop distance
+    hopStart = packet.get("hopStart")
+    hopLimit = packet.get("hopLimit")
+    if hopStart and hopLimit:
+        jsonObj["hopDistance"] = hopStart - hopLimit
     # Each telemetry type has its own topic
     telemetry = packet.get("decoded").get("telemetry")
     if telemetry:

@@ -150,6 +150,15 @@ class Globals:
                 type="int",
             ),
             dict(
+                id="hopdistance",
+                name="Hop Distance",
+                state_topic="device",
+                device_class=None,
+                unit=None,
+                property="hopDistance",
+                type="int",
+            ),
+            dict(
                 id="ch1_voltage",
                 name="Voltage Sensor 1",
                 state_topic="power",
