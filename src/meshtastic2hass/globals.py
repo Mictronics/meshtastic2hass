@@ -141,6 +141,15 @@ class Globals:
                 type="float",
             ),
             dict(
+                id="uptime",
+                name="Uptime",
+                state_topic="device",
+                device_class="duration",
+                unit="s",
+                property="uptimeSeconds",
+                type="int",
+            ),
+            dict(
                 id="ch1_voltage",
                 name="Voltage Sensor 1",
                 state_topic="power",
