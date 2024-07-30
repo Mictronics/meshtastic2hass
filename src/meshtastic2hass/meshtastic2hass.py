@@ -38,7 +38,7 @@ from tomlkit import toml_file
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2024, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.0.14"
+__version__ = "1.0.15"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -270,7 +270,7 @@ def onConnect(interface, topic=pub.AUTO_TOPIC):
 
 def onDisconnect(interface, topic=pub.AUTO_TOPIC):
     """Callback invoked when we disconnect from a radio"""
-    print(f"Connection: {topic.getName()}")
+    print(f"Lost connection: {topic.getName()}")
     _globals = Globals.getInstance()
     if _globals.getLoop() is not None:
         _globals.getLoop().stop()
@@ -541,7 +541,8 @@ def main():
     # We assume client is fully connected now
     onConnected(client)
     # Wait for packets
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     _globals.setLoop(loop)
     # Publish channel configuration every hour via MQTT to avoid unavailability in HA
     loop.create_task(periodic(3600, publishChannelConfig))
