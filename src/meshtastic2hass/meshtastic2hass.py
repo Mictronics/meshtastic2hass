@@ -49,8 +49,11 @@ def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
     sensors = _globals.getSensors()
     topicPrefix = _globals.getTopicPrefix()
     jsonObj = {}
-    fromId = packet.get("fromId")
-    shortName = interface.nodes.get(fromId).get("user").get("shortName")
+    try:
+        fromId = packet.get("fromId")
+        shortName = interface.nodes.get(fromId).get("user").get("shortName")
+    except AttributeError:
+        return
     # Filter nodes
     filterNodes = _globals.getFilterNodes()
     if len(filterNodes) > 0:
@@ -130,8 +133,11 @@ def onReceivePosition(packet, interface, topic=pub.AUTO_TOPIC):
     mqtt = _globals.getMQTT()
     topicPrefix = _globals.getTopicPrefix()
     jsonObj = {}
-    fromId = packet.get("fromId")
-    shortName = interface.nodes.get(fromId).get("user").get("shortName")
+    try:
+        fromId = packet.get("fromId")
+        shortName = interface.nodes.get(fromId).get("user").get("shortName")
+    except AttributeError:
+        return
     # Filter nodes
     filterNodes = _globals.getFilterNodes()
     if len(filterNodes) > 0:
@@ -173,9 +179,12 @@ def onReceiveText(packet, interface, topic=pub.AUTO_TOPIC):
         channelList = _globals.getChannelList()
         topicPrefix = _globals.getTopicPrefix()
         jsonObj = {}
-        fromName = (
-            interface.nodes.get(packet.get("fromId")).get("user").get("shortName")
-        )
+        try:
+            fromName = (
+                interface.nodes.get(packet.get("fromId")).get("user").get("shortName")
+            )
+        except AttributeError:
+            return
         if packet.get("channel"):
             channelNumber = packet["channel"]
         else:
