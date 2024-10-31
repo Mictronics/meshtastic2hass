@@ -495,7 +495,7 @@ def main():
     signal.signal(signal.SIGABRT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    _globals = Globals().getInstance()
+    _globals = Globals.getInstance()
     parser = argparse.ArgumentParser(
         prog="meshtastic2hass",
         description="Connects Meshtastic radios via MQTT to Home Assistant (Hass).",
