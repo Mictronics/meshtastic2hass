@@ -38,7 +38,7 @@ from tomlkit import toml_file
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2024, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.0.15"
+__version__ = "1.0.16"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -53,6 +53,8 @@ def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
         fromId = packet.get("fromId")
         shortName = interface.nodes.get(fromId).get("user").get("shortName")
     except AttributeError:
+        fromId = packet.get("fromId")
+        print(f"Error shortname, id: {interface.nodes.get(fromId)}")
         return
     # Filter nodes
     filterNodes = _globals.getFilterNodes()
@@ -137,6 +139,8 @@ def onReceivePosition(packet, interface, topic=pub.AUTO_TOPIC):
         fromId = packet.get("fromId")
         shortName = interface.nodes.get(fromId).get("user").get("shortName")
     except AttributeError:
+        fromId = packet.get("fromId")
+        print(f"Error shortname, id: {interface.nodes.get(fromId)}")
         return
     # Filter nodes
     filterNodes = _globals.getFilterNodes()
@@ -184,6 +188,8 @@ def onReceiveText(packet, interface, topic=pub.AUTO_TOPIC):
                 interface.nodes.get(packet.get("fromId")).get("user").get("shortName")
             )
         except AttributeError:
+            fromId = packet.get("fromId")
+            print(f"Error shortname, id: {interface.nodes.get(fromId)}")
             return
         if packet.get("channel"):
             channelNumber = packet["channel"]
