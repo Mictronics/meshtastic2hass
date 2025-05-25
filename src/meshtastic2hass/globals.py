@@ -74,7 +74,7 @@ class Globals:
                 state_topic="device",
                 device_class=None,
                 unit="%",
-                property="channelUtilization",
+                property="airUtilTx",
                 type="float",
             ),
             dict(
