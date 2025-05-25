@@ -2,7 +2,7 @@
 
 # This file is part of Meshtastic to Home Assistant (Hass)
 #
-# Copyright (c) 2024 Michael Wolf <michael@mictronics.de>
+# Copyright (c) 2025 Michael Wolf <michael@mictronics.de>
 #
 # meshtastic2hass is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,9 +36,9 @@ from pubsub import pub
 from tomlkit import toml_file
 
 __author__ = "Michael Wolf aka Mictronics"
-__copyright__ = "2024, (C) Michael Wolf"
+__copyright__ = "2025, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.0.19"
+__version__ = "1.0.20"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
