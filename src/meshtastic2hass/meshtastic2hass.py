@@ -30,7 +30,7 @@ import meshtastic.serial_interface
 import meshtastic.tcp_interface
 import paho.mqtt.client as mqttClient
 import random
-from globals import Globals
+from .globals import Globals
 from meshtastic import config_pb2, channel_pb2
 from pubsub import pub
 from tomlkit import toml_file
