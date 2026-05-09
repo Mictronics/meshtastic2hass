@@ -30,11 +30,10 @@ import meshtastic
 import meshtastic.serial_interface
 import meshtastic.tcp_interface
 import paho.mqtt.client as mqttClient
+from globals import Globals
 from meshtastic import channel_pb2, config_pb2
 from pubsub import pub
 from tomlkit import toml_file
-
-from .globals import Globals
 
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2025, (C) Michael Wolf"
