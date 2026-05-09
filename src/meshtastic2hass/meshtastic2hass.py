@@ -21,19 +21,20 @@ import argparse
 import asyncio
 import json
 import os
+import random
+import re
 import signal
 import sys
-import re
 
 import meshtastic
 import meshtastic.serial_interface
 import meshtastic.tcp_interface
 import paho.mqtt.client as mqttClient
-import random
-from .globals import Globals
-from meshtastic import config_pb2, channel_pb2
+from meshtastic import channel_pb2, config_pb2
 from pubsub import pub
 from tomlkit import toml_file
+
+from .globals import Globals
 
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2025, (C) Michael Wolf"
@@ -65,7 +66,7 @@ def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
             return
     # No special characters allowed in Hass config topic
     pattern = _globals.getSpecialChars()
-    fromId = re.sub(pattern, '', fromId)
+    fromId = re.sub(pattern, "", fromId)
     # Publish auto discovery configuration for sensors
     for sensor in sensors:
         jsonObj.clear()
@@ -73,7 +74,10 @@ def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
         jsonObj["name"] = f"{shortName} {sensor['name']}"
         jsonObj["unique_id"] = f"{shortName.lower()}_{sensor['id']}"
         jsonObj["state_topic"] = f"{topicPrefix}/{fromId}/{sensor['state_topic']}"
-        jsonObj["state_class"] = "measurement"
+        if sensor["state_class"]:
+            jsonObj["state_class"] = sensor["state_class"]
+        else:
+            jsonObj["state_class"] = "measurement"
         jsonObj["platform"] = "mqtt"
         if sensor["device_class"]:
             jsonObj["device_class"] = sensor["device_class"]
@@ -114,6 +118,7 @@ def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
         devMetrics = telemetry.get("deviceMetrics")
         envMetrics = telemetry.get("environmentMetrics")
         powerMetrics = telemetry.get("powerMetrics")
+        localStats = telemetry.get("localStats")
         if devMetrics:
             mqttTopic = f"{topicPrefix}/{fromId}/device"
             jsonObj = jsonObj | devMetrics
@@ -123,6 +128,9 @@ def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
         elif powerMetrics:
             mqttTopic = f"{topicPrefix}/{fromId}/power"
             jsonObj = jsonObj | powerMetrics
+        elif localStats:
+            mqttTopic = f"{topicPrefix}/{fromId}/localStats"
+            jsonObj = jsonObj | localStats
 
         mqtt.publish(
             mqttTopic, json.dumps(jsonObj, separators=(",", ":")), qos=1
@@ -151,7 +159,7 @@ def onReceivePosition(packet, interface, topic=pub.AUTO_TOPIC):
             return
     # No special characters allowed in config topic
     pattern = _globals.getSpecialChars()
-    fromId = re.sub(pattern, '', fromId)
+    fromId = re.sub(pattern, "", fromId)
     # Publish auto discovery configuration for device tracker
     mqttTopic = f"homeassistant/device_tracker/{fromId}/config"
     jsonObj["name"] = f"{shortName} Position"
@@ -197,7 +205,7 @@ def onReceiveText(packet, interface, topic=pub.AUTO_TOPIC):
             channelNumber = 0
         # No special characters allowed in config topic
         pattern = _globals.getSpecialChars()
-        channelName = re.sub(pattern, '', channelList[channelNumber])
+        channelName = re.sub(pattern, "", channelList[channelNumber])
         # Publish auto discovery configuration for MQTT text entity per channel
         mqttTopic = f"homeassistant/text/{channelName}/config"
         jsonObj["name"] = f"{channelList[channelNumber]}"
@@ -246,7 +254,7 @@ async def publishChannelConfig():
         for channelName in channelList:
             # No special characters allowed in config topic
             pattern = _globals.getSpecialChars()
-            channelName = re.sub(pattern, '', channelName)
+            channelName = re.sub(pattern, "", channelName)
             # Publish auto discovery configuration for MQTT text entity per channel
             mqttTopic = f"homeassistant/text/{channelName}/config"
             jsonObj["name"] = f"{channelName}"
@@ -352,17 +360,17 @@ def onMQTTMessage(mqttc, obj, msg):
             return
         # Check for enabled channel
         ch = interface.localNode.getChannelByChannelIndex(channel_index)
-        if (ch and ch.role != channel_pb2.Channel.Role.DISABLED):
+        if ch and ch.role != channel_pb2.Channel.Role.DISABLED:
             # Forward message to channel
             # print(channel + " " + " " + msg.payload.decode('utf-8'))
             interface.sendText(
-                     msg.payload.decode('utf-8'),
-                     "^all",  # Broadcast
-                     wantAck=False,
-                     wantResponse=False,
-                     channelIndex=channel_index,
-                     onResponse=None,
-                 )
+                msg.payload.decode("utf-8"),
+                "^all",  # Broadcast
+                wantAck=False,
+                wantResponse=False,
+                channelIndex=channel_index,
+                onResponse=None,
+            )
 
 
 def onMQTTConnect(client, userdata, flags, reason_code, properties):
@@ -464,9 +472,11 @@ def initMQTT():
     _globals = Globals.getInstance()
     args = _globals.getArgs()
     mqtt = _globals.getMQTT()
-    client_id = f'meshtastic2hass-{random.randint(0, 100)}'
+    client_id = f"meshtastic2hass-{random.randint(0, 100)}"
     try:
-        mqtt = mqttClient.Client(mqttClient.CallbackAPIVersion.VERSION2, client_id, True)
+        mqtt = mqttClient.Client(
+            mqttClient.CallbackAPIVersion.VERSION2, client_id, True
+        )
         _globals.setMQTT(mqtt)
         _globals.setTopicPrefix(args.mqtt_topic_prefix)
         mqtt.on_message = onMQTTMessage
@@ -530,7 +540,7 @@ def main():
     initMQTT()
     try:
         if args.use_network and isinstance(args.hostname, str):
-            client = meshtastic.tcp_interface.TCPInterface(args.hostname , noProto=False)
+            client = meshtastic.tcp_interface.TCPInterface(args.hostname, noProto=False)
         else:
             client = meshtastic.serial_interface.SerialInterface(
                 devPath=args.dev, noProto=False
