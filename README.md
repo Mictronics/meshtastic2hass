@@ -40,8 +40,25 @@ This might be an undesired behavior when only some nodes are of interest. A node
 
 Receiving channels text from nodes is not filtered at all.
 
+## Build
+
+Requires `tox`. Builds an sdist and wheel into `dist/`, versioned from the current git tag/commit:
+
+```bash
+tox -e clean  # remove old build/dist/*.egg-info
+tox -e build
+```
+
 ## Install
 
-The following command installs the package and its dependencies from `setup.cfg`. In some environments, use pip3 instead of pip.
+From a clone of this repository (recommended until the next PyPI release, see note below):
 
-`pip install .`
+```bash
+pip install .
+# or, for an isolated CLI install:
+pipx install .
+```
+
+The package is also published on PyPI as `meshtastic2hass`, installable with `pip install meshtastic2hass` or `pipx install meshtastic2hass`. In some environments, use pip3 instead of pip.
+
+> **Note:** the currently published PyPI release still depends on a package literally named `globals`, which collides with this project's own internal module of the same name and crashes the app on startup when installed from PyPI. This is fixed on the `main` branch (module renamed to `app_globals`) but not yet released — install from source until a new version is published.
