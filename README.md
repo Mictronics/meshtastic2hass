@@ -40,8 +40,8 @@ This might be an undesired behavior when only some nodes are of interest. A node
 
 Receiving channels text from nodes is not filtered at all.
 
-## Install packages with pip and requirements.txt
+## Install
 
-The following command installs packages in bulk according to the configuration file, requirements.txt. In some environments, use pip3 instead of pip.
+The following command installs the package and its dependencies from `setup.cfg`. In some environments, use pip3 instead of pip.
 
-`pip install -r requirements.txt`
+`pip install .`

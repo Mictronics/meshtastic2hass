@@ -26,14 +26,14 @@ import re
 import signal
 import sys
 
-import meshtastic
 import meshtastic.serial_interface
 import meshtastic.tcp_interface
 import paho.mqtt.client as mqttClient
-from globals import Globals
 from meshtastic import channel_pb2, config_pb2
 from pubsub import pub
 from tomlkit import toml_file
+
+from . import app_globals as g
 
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2025, (C) Michael Wolf"
@@ -44,10 +44,9 @@ __version__ = "1.0.20"
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
     """Callback invoked when a telemetry or position packet arrives."""
     # Create JSON from Mesh packet.
-    _globals = Globals.getInstance()
-    mqtt = _globals.getMQTT()
-    sensors = _globals.getSensors()
-    topicPrefix = _globals.getTopicPrefix()
+    mqtt = g.mqtt
+    sensors = g.sensors
+    topicPrefix = g.topicPrefix
     jsonObj = {}
     try:
         fromId = packet.get("fromId")
@@ -57,14 +56,14 @@ def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
         print(f"Error shortname, id: {interface.nodes.get(fromId)}")
         return
     # Filter nodes
-    filterNodes = _globals.getFilterNodes()
+    filterNodes = g.filterNodes
     if len(filterNodes) > 0:
         try:
             filterNodes.index(shortName)
         except ValueError:
             return
     # No special characters allowed in Hass config topic
-    pattern = _globals.getSpecialChars()
+    pattern = g.specialChars
     fromId = re.sub(pattern, "", fromId)
     # Publish auto discovery configuration for sensors
     for sensor in sensors:
@@ -138,9 +137,8 @@ def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
 
 def onReceivePosition(packet, interface, topic=pub.AUTO_TOPIC):
     """Callback invoked when a position packet arrives."""
-    _globals = Globals.getInstance()
-    mqtt = _globals.getMQTT()
-    topicPrefix = _globals.getTopicPrefix()
+    mqtt = g.mqtt
+    topicPrefix = g.topicPrefix
     jsonObj = {}
     try:
         fromId = packet.get("fromId")
@@ -150,14 +148,14 @@ def onReceivePosition(packet, interface, topic=pub.AUTO_TOPIC):
         print(f"Error shortname, id: {interface.nodes.get(fromId)}")
         return
     # Filter nodes
-    filterNodes = _globals.getFilterNodes()
+    filterNodes = g.filterNodes
     if len(filterNodes) > 0:
         try:
             filterNodes.index(shortName)
         except ValueError:
             return
     # No special characters allowed in config topic
-    pattern = _globals.getSpecialChars()
+    pattern = g.specialChars
     fromId = re.sub(pattern, "", fromId)
     # Publish auto discovery configuration for device tracker
     mqttTopic = f"homeassistant/device_tracker/{fromId}/config"
@@ -185,10 +183,9 @@ def onReceivePosition(packet, interface, topic=pub.AUTO_TOPIC):
 def onReceiveText(packet, interface, topic=pub.AUTO_TOPIC):
     """Callback invoked when a text packet arrives."""
     try:
-        _globals = Globals.getInstance()
-        mqtt = _globals.getMQTT()
-        channelList = _globals.getChannelList()
-        topicPrefix = _globals.getTopicPrefix()
+        mqtt = g.mqtt
+        channelList = g.channelList
+        topicPrefix = g.topicPrefix
         jsonObj = {}
         try:
             fromName = (
@@ -203,7 +200,7 @@ def onReceiveText(packet, interface, topic=pub.AUTO_TOPIC):
         else:
             channelNumber = 0
         # No special characters allowed in config topic
-        pattern = _globals.getSpecialChars()
+        pattern = g.specialChars
         channelName = re.sub(pattern, "", channelList[channelNumber])
         # Publish auto discovery configuration for MQTT text entity per channel
         mqttTopic = f"homeassistant/text/{channelName}/config"
@@ -231,28 +228,17 @@ def onReceiveText(packet, interface, topic=pub.AUTO_TOPIC):
         print(f"Error processing text: {ex}")
 
 
-async def periodic(interval_sec, coro_name, *args, **kwargs):
-    """Helper function for running a target periodically."""
-    # Loop forever
-    while True:
-        # Wait an interval
-        await asyncio.sleep(interval_sec)
-        # Await the target
-        await coro_name(*args, **kwargs)
-
-
 async def publishChannelConfig():
     """Publish known channels in HA to keep them alive when no message are received over long time."""
     try:
-        _globals = Globals.getInstance()
-        mqtt = _globals.getMQTT()
-        channelList = _globals.getChannelList()
-        topicPrefix = _globals.getTopicPrefix()
+        mqtt = g.mqtt
+        channelList = g.channelList
+        topicPrefix = g.topicPrefix
         jsonObj = {}
 
         for channelName in channelList:
             # No special characters allowed in config topic
-            pattern = _globals.getSpecialChars()
+            pattern = g.specialChars
             channelName = re.sub(pattern, "", channelName)
             # Publish auto discovery configuration for MQTT text entity per channel
             mqttTopic = f"homeassistant/text/{channelName}/config"
@@ -269,6 +255,13 @@ async def publishChannelConfig():
 
     except Exception as ex:
         print(f"Error processing text: {ex}")
+
+
+async def publishChannelConfigHourly():
+    """Republish channel configuration every hour so HA doesn't mark entities unavailable."""
+    while True:
+        await asyncio.sleep(3600)
+        await publishChannelConfig()
 
 
 def onReceive(packet, interface, topic=pub.AUTO_TOPIC):
@@ -293,9 +286,8 @@ def onConnect(interface, topic=pub.AUTO_TOPIC):
 def onDisconnect(interface, topic=pub.AUTO_TOPIC):
     """Callback invoked when we disconnect from a radio"""
     print(f"Lost connection: {topic.getName()}")
-    _globals = Globals.getInstance()
-    if _globals.getLoop() is not None:
-        _globals.getLoop().stop()
+    if g.loop is not None:
+        g.loop.stop()
 
 
 def toCamelCase(string):
@@ -308,8 +300,7 @@ def toCamelCase(string):
 def onConnected(interface):
     """Callback invoked when we are connected to a radio"""
     try:
-        _globals = Globals.getInstance()
-        _globals.setMeshtasticInterface(interface)
+        g.interface = interface
         print("Radio: connected")
         pub.subscribe(onReceiveText, "meshtastic.receive.text")
         pub.subscribe(onReceiveTelemetry, "meshtastic.receive.telemetry")
@@ -318,7 +309,7 @@ def onConnected(interface):
         pub.subscribe(onDisconnect, "meshtastic.connection.lost")
         pub.subscribe(onReceive, "meshtastic.receive")
 
-        channelList = _globals.getChannelList()
+        channelList = g.channelList
         node = interface.getNode("^local")
         deviceChannels = node.channels
         for deviceChannel in deviceChannels:
@@ -345,10 +336,9 @@ def onConnected(interface):
 
 def onMQTTMessage(mqttc, obj, msg):
     """Callback invoke when we receive a message via MQTT"""
-    _globals = Globals.getInstance()
-    channelList = _globals.getChannelList()
-    topicPrefix = _globals.getTopicPrefix()
-    interface = _globals.getMeshtasticInterface()
+    channelList = g.channelList
+    topicPrefix = g.topicPrefix
+    interface = g.interface
     # Check for correct topic
     if msg.topic.startswith(topicPrefix):
         channel = msg.topic.split("/")[-1]
@@ -376,30 +366,22 @@ def onMQTTConnect(client, userdata, flags, reason_code, properties):
     """Callback invoke when we connect to MQTT broker"""
     if reason_code != 0:
         print(f"MQTT: unexpected connection error {reason_code}")
-        _globals = Globals.getInstance()
-        if _globals.getLoop() is not None:
-            _globals.getLoop().stop()
+        if g.loop is not None:
+            g.loop.stop()
 
 
 def onMQTTDisconnect(client, userdata, flags, reason_code, properties):
     """Callback invoke when we disconnect from MQTT broker"""
     if reason_code != 0:
         print(f"MQTT: unexpected disconnection error {reason_code}")
-        _globals = Globals.getInstance()
-        if _globals.getLoop() is not None:
-            _globals.getLoop().stop()
-
-
-def onMQTTPublish(client, userdata, mid, reason_codes, properties):
-    """Callback invoked when a message has completed transmission to the broker"""
-    pass
+        if g.loop is not None:
+            g.loop.stop()
 
 
 def initArgParser():
     """Initialize the command line argument parsing."""
-    _globals = Globals.getInstance()
-    parser = _globals.getParser()
-    args = _globals.getArgs()
+    parser = g.parser
+    args = g.args
 
     parser.add_argument(
         "--config",
@@ -458,30 +440,26 @@ def initArgParser():
         required=False,
     )
 
-    parser.set_defaults(deprecated=None)
     parser.add_argument("--version", action="version", version=f"{__version__}")
 
     args = parser.parse_args()
-    _globals.setArgs(args)
-    _globals.setParser(parser)
+    g.args = args
+    g.parser = parser
 
 
 def initMQTT():
     """Initialize the MQTT client and connect to broker"""
-    _globals = Globals.getInstance()
-    args = _globals.getArgs()
-    mqtt = _globals.getMQTT()
+    args = g.args
     client_id = f"meshtastic2hass-{random.randint(0, 100)}"
     try:
         mqtt = mqttClient.Client(
             mqttClient.CallbackAPIVersion.VERSION2, client_id, True
         )
-        _globals.setMQTT(mqtt)
-        _globals.setTopicPrefix(args.mqtt_topic_prefix)
+        g.mqtt = mqtt
+        g.topicPrefix = args.mqtt_topic_prefix
         mqtt.on_message = onMQTTMessage
         mqtt.on_connect = onMQTTConnect
         mqtt.on_disconnect = onMQTTDisconnect
-        mqtt.on_publish = onMQTTPublish
         mqtt.username_pw_set(args.mqtt_user, args.mqtt_password)
         mqtt.connect(args.mqtt_host, int(args.mqtt_port))
         mqtt.subscribe([(f"{args.mqtt_topic_prefix}/+", 0)])
@@ -504,16 +482,15 @@ def main():
     signal.signal(signal.SIGABRT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    _globals = Globals.getInstance()
     parser = argparse.ArgumentParser(
         prog="meshtastic2hass",
         description="Connects Meshtastic radios via MQTT to Home Assistant (Hass).",
         epilog="License GPL-3+ (C) 2024 Michael Wolf, www.mictronics.de",
     )
-    _globals.setParser(parser)
+    g.parser = parser
     initArgParser()
-    args = _globals.getArgs()
-    mqtt = _globals.getMQTT()
+    args = g.args
+    mqtt = g.mqtt
     cfg = None
 
     if len(sys.argv) == 1:
@@ -524,14 +501,14 @@ def main():
         if os.path.exists:
             cfg = toml_file.TOMLFile(args.config).read()
             args.dev = cfg.get("device")
-            _globals.setTopicPrefix(cfg.get("mqtt").get("topic_prefix"))
+            g.topicPrefix = cfg.get("mqtt").get("topic_prefix")
             args.mqtt_user = cfg.get("mqtt").get("user")
             args.mqtt_password = cfg.get("mqtt").get("password")
             args.mqtt_host = cfg.get("mqtt").get("host")
             args.mqtt_port = cfg.get("mqtt").get("port")
             args.use_network = cfg.get("use_network")
             args.hostname = cfg.get("hostname")
-            _globals.setFilterNodes(cfg.get("meshtastic").get("filter_nodes"))
+            g.filterNodes = cfg.get("meshtastic").get("filter_nodes")
         else:
             print(f"Error: configuration file {args.config} not found!")
             sys.exit(1)
@@ -567,9 +544,8 @@ def main():
     # Wait for packets
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    _globals.setLoop(loop)
-    # Publish channel configuration every hour via MQTT to avoid unavailability in HA
-    loop.create_task(periodic(3600, publishChannelConfig))
+    g.loop = loop
+    loop.create_task(publishChannelConfigHourly())
     try:
         loop.run_forever()
     finally:
