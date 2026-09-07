@@ -51,14 +51,14 @@ tox -e build
 
 ## Install
 
-From a clone of this repository (recommended until the next PyPI release, see note below):
+Published on PyPI as `meshtastic2hass`:
 
 ```bash
-pip install .
+pip install meshtastic2hass
 # or, for an isolated CLI install:
-pipx install .
+pipx install meshtastic2hass
 ```
 
-The package is also published on PyPI as `meshtastic2hass`, installable with `pip install meshtastic2hass` or `pipx install meshtastic2hass`. In some environments, use pip3 instead of pip.
+In some environments, use pip3 instead of pip.
 
-> **Note:** the currently published PyPI release still depends on a package literally named `globals`, which collides with this project's own internal module of the same name and crashes the app on startup when installed from PyPI. This is fixed on the `main` branch (module renamed to `app_globals`) but not yet released — install from source until a new version is published.
+To install from a clone of this repository instead (e.g. to try unreleased changes on `main`), replace `meshtastic2hass` above with `.`.
