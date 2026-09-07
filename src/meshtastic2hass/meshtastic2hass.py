@@ -38,7 +38,7 @@ from . import app_globals as g
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2025, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.0.20"
+__version__ = "1.0.21"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
