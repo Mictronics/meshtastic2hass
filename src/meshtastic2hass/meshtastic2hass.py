@@ -38,7 +38,7 @@ from . import app_globals as g
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2025, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.0.21"
+__version__ = "1.1.0"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -117,6 +117,7 @@ def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
         envMetrics = telemetry.get("environmentMetrics")
         powerMetrics = telemetry.get("powerMetrics")
         localStats = telemetry.get("localStats")
+        airQualityMetrics = telemetry.get("airQualityMetrics")
         if devMetrics:
             mqttTopic = f"{topicPrefix}/{fromId}/device"
             jsonObj = jsonObj | devMetrics
@@ -129,6 +130,9 @@ def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
         elif localStats:
             mqttTopic = f"{topicPrefix}/{fromId}/localStats"
             jsonObj = jsonObj | localStats
+        elif airQualityMetrics:
+            mqttTopic = f"{topicPrefix}/{fromId}/airquality"
+            jsonObj = jsonObj | airQualityMetrics
 
         mqtt.publish(
             mqttTopic, json.dumps(jsonObj, separators=(",", ":")), qos=1
@@ -174,6 +178,19 @@ def onReceivePosition(packet, interface, topic=pub.AUTO_TOPIC):
         jsonObj["latitude"] = position.get("latitude")
         jsonObj["satsInView"] = position.get("satsInView")
         jsonObj["location_accuracy"] = 1
+        if position.get("altitude") is not None:
+            jsonObj["altitude"] = position.get("altitude")
+        if position.get("groundSpeed") is not None:
+            jsonObj["speed"] = position.get("groundSpeed")
+        # ground_track/DOP fields are transmitted in 1/100 units
+        if position.get("groundTrack") is not None:
+            jsonObj["course"] = position.get("groundTrack") / 100
+        if position.get("PDOP") is not None:
+            jsonObj["pdop"] = position.get("PDOP") / 100
+        if position.get("HDOP") is not None:
+            jsonObj["hdop"] = position.get("HDOP") / 100
+        if position.get("VDOP") is not None:
+            jsonObj["vdop"] = position.get("VDOP") / 100
         mqttTopic = f"{topicPrefix}/{fromId}/attributes"
         mqtt.publish(
             mqttTopic, json.dumps(jsonObj, separators=(",", ":")), qos=1
