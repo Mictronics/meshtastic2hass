@@ -38,7 +38,7 @@ from . import app_globals as g
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2025, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -490,7 +490,12 @@ def main():
     """Main program function"""
 
     def signal_handler(signal, frame):
-        client.close()
+        # client.close() sends a disconnect packet; if the link already
+        # dropped (e.g. TCP connection lost) that write raises OSError.
+        try:
+            client.close()
+        except OSError as ex:
+            print(f"Error closing radio connection: {ex}")
         mqtt.disconnect()
         mqtt.loop_stop()
         sys.exit(0)
