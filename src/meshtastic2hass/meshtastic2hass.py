@@ -25,6 +25,7 @@ import random
 import re
 import signal
 import sys
+import threading
 
 import meshtastic.serial_interface
 import meshtastic.tcp_interface
@@ -38,7 +39,7 @@ from . import app_globals as g
 __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2025, (C) Michael Wolf"
 __license__ = "GPL v3+"
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -486,6 +487,20 @@ def initMQTT():
         sys.exit(1)
 
 
+def onThreadException(args):
+    """Handle an unhandled exception in a background thread.
+
+    The meshtastic library's heartbeat timer thread has no error handling: on
+    a dead TCP connection (e.g. broken pipe from a stale half-open socket)
+    it raises and dies silently, over and over, without ever signalling
+    meshtastic.connection.lost. That leaves the process running but unable
+    to talk to the radio, with no way for us to detect it. Exiting here lets
+    systemd restart the service with a fresh connection instead.
+    """
+    print(f"Unhandled exception in thread {args.thread.name}: {args.exc_value}")
+    os._exit(1)
+
+
 def main():
     """Main program function"""
 
@@ -503,6 +518,7 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGABRT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
+    threading.excepthook = onThreadException
 
     parser = argparse.ArgumentParser(
         prog="meshtastic2hass",
