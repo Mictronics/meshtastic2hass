@@ -503,16 +503,19 @@ def onThreadException(args):
 
 def main():
     """Main program function"""
+    client = None
 
     def signal_handler(signal, frame):
         # client.close() sends a disconnect packet; if the link already
         # dropped (e.g. TCP connection lost) that write raises OSError.
-        try:
-            client.close()
-        except OSError as ex:
-            print(f"Error closing radio connection: {ex}")
-        mqtt.disconnect()
-        mqtt.loop_stop()
+        if client is not None:
+            try:
+                client.close()
+            except OSError as ex:
+                print(f"Error closing radio connection: {ex}")
+        if g.mqtt is not None:
+            g.mqtt.disconnect()
+            g.mqtt.loop_stop()
         sys.exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -528,7 +531,6 @@ def main():
     g.parser = parser
     initArgParser()
     args = g.args
-    mqtt = g.mqtt
     cfg = None
 
     if len(sys.argv) == 1:
