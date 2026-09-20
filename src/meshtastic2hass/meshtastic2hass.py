@@ -19,6 +19,7 @@
 #
 import argparse
 import asyncio
+import importlib.metadata
 import json
 import os
 import random
@@ -40,6 +41,11 @@ __author__ = "Michael Wolf aka Mictronics"
 __copyright__ = "2025, (C) Michael Wolf"
 __license__ = "GPL v3+"
 __version__ = "1.1.2"
+
+# Keep in sync with setup.cfg's meshtastic install_requires floor. Below this,
+# TCPInterface write errors (e.g. a dead connection) can go unrecovered instead
+# of triggering the library's own reconnect.
+MIN_MESHTASTIC_VERSION = (2, 7, 11)
 
 
 def onReceiveTelemetry(packet, interface, topic=pub.AUTO_TOPIC):
@@ -487,6 +493,27 @@ def initMQTT():
         sys.exit(1)
 
 
+def checkMeshtasticVersion():
+    """Warn if the meshtastic package this process actually loaded is too old.
+
+    setup.cfg's install_requires can't catch this: on a host with multiple
+    meshtastic installs (one per user/venv/interpreter), pip only validates
+    whichever install it's run against, not the one this process resolves.
+    """
+    try:
+        installed = importlib.metadata.version("meshtastic")
+        if tuple(int(p) for p in installed.split(".")[:3]) < MIN_MESHTASTIC_VERSION:
+            required = ".".join(map(str, MIN_MESHTASTIC_VERSION))
+            print(
+                f"Warning: meshtastic {installed} "
+                f"({meshtastic.tcp_interface.__file__}) is older than the "
+                f"required {required}. A dead TCP connection may not "
+                "auto-reconnect on write errors."
+            )
+    except Exception as e:
+        print(f"Could not check meshtastic version: {e}")
+
+
 def onThreadException(args):
     """Handle an unhandled exception in a background thread.
 
@@ -503,6 +530,7 @@ def onThreadException(args):
 
 def main():
     """Main program function"""
+    checkMeshtasticVersion()
     client = None
 
     def signal_handler(signal, frame):
