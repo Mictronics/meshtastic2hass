@@ -19,6 +19,7 @@
 #
 import argparse
 import asyncio
+import contextlib
 import importlib.metadata
 import json
 import os
@@ -530,6 +531,9 @@ def onThreadException(args):
 
 def main():
     """Main program function"""
+    # stdout is block-buffered when not a tty (systemd), which can delay our
+    # print()s by ages relative to the unbuffered stderr `logging` output.
+    sys.stdout.reconfigure(line_buffering=True)
     checkMeshtasticVersion()
     client = None
 
@@ -613,10 +617,13 @@ def main():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     g.loop = loop
-    loop.create_task(publishChannelConfigHourly())
+    hourlyTask = loop.create_task(publishChannelConfigHourly())
     try:
         loop.run_forever()
     finally:
+        hourlyTask.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            loop.run_until_complete(hourlyTask)
         loop.close()
 
 
