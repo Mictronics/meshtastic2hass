@@ -312,7 +312,8 @@ def onDisconnect(interface, topic=pub.AUTO_TOPIC):
     """Callback invoked when we disconnect from a radio"""
     print(f"Lost connection: {topic.getName()}")
     if g.loop is not None:
-        g.loop.stop()
+        # Runs on meshtastic's reader thread, not the loop's own thread.
+        g.loop.call_soon_threadsafe(g.loop.stop)
 
 
 def toCamelCase(string):
@@ -392,7 +393,8 @@ def onMQTTConnect(client, userdata, flags, reason_code, properties):
     if reason_code != 0:
         print(f"MQTT: unexpected connection error {reason_code}")
         if g.loop is not None:
-            g.loop.stop()
+            # Runs on paho-mqtt's network thread, not the loop's own thread.
+            g.loop.call_soon_threadsafe(g.loop.stop)
 
 
 def onMQTTDisconnect(client, userdata, flags, reason_code, properties):
@@ -400,7 +402,8 @@ def onMQTTDisconnect(client, userdata, flags, reason_code, properties):
     if reason_code != 0:
         print(f"MQTT: unexpected disconnection error {reason_code}")
         if g.loop is not None:
-            g.loop.stop()
+            # Runs on paho-mqtt's network thread, not the loop's own thread.
+            g.loop.call_soon_threadsafe(g.loop.stop)
 
 
 def initArgParser():
